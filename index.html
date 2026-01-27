@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Auction House Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background-color: #0e1117; color: white; font-family: sans-serif; padding: 20px; }
+        .container { background-color: #262730; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+        input { width: 95%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; }
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; }
+        
+        /* Buttons */
+        .btn-calc { width: 100%; padding: 15px; background-color: #ffbd45; color: black; font-weight: bold; border: none; border-radius: 5px; font-size: 18px; margin-top: 15px; cursor: pointer; }
+        .btn-win { width: 100%; padding: 15px; background-color: #00cc96; color: black; font-weight: bold; border: none; border-radius: 5px; font-size: 18px; margin-top: 10px; cursor: pointer; }
+        .btn-export { width: 48%; padding: 10px; background-color: #4facfe; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-clear { width: 48%; padding: 10px; background-color: #ff4b4b; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
+        .action-row { display: flex; justify-content: space-between; margin-top: 20px; }
+
+        /* Results */
+        .result-box { margin-top: 20px; padding: 15px; border: 1px solid #444; border-radius: 5px; display: none; }
+        a { color: #4facfe; text-decoration: none; font-size: 18px; }
+        .stop { color: #ff4b4b; font-weight: bold; font-size: 24px; }
+        .go { color: #00cc96; font-weight: bold; font-size: 24px; }
+        h1 { color: #ffbd45; text-align: center; }
+        label { font-size: 14px; color: #ccc; }
+        .profit-display { font-size: 18px; color: #4facfe; margin-top: 10px; font-weight: bold; }
+
+        /* Log Section */
+        .log-section { margin-top: 30px; border-top: 2px dashed #555; padding-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: #ffbd45; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        td { padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .grand-total { text-align: right; font-size: 20px; color: #00cc96; margin-top: 15px; }
+        .url-input { background-color: #1e2126; color: #4facfe; border: 1px solid #4facfe; }
+    </style>
+</head>
+<body onload="loadLog()">
+
+<div class="container">
+    <h1>🏛️ Auction House Calculator</h1>
+    
+    <label>Paste Auction Link (Auto-Fills Name)</label>
+    <input type="text" id="url" class="url-input" placeholder="Paste https://..." oninput="autoFillName()">
+
+    <label>Item Name</label>
+    <input type="text" id="item" placeholder="e.g. Ryobi Drill">
+    
+    <div class="row">
+        <div class="col">
+            <label>Buyer's Prem (%)</label>
+            <input type="number" id="premium" value="18">
+        </div>
+        <div class="col">
+            <label>Sales Tax (%)</label>
+            <input type="number" id="tax" value="9.25">
+        </div>
+    </div>
+
+    <label>Current Bid ($)</label>
+    <input type="number" id="bid" placeholder="0.00">
+    
+    <div class="row">
+        <div class="col">
+            <label>Est. Shipping ($)</label>
+            <input type="number" id="shipping" placeholder="0.00">
+        </div>
+        <div class="col">
+            <label>Repair/Parts ($)</label>
+            <input type="number" id="repair" placeholder="0.00">
+        </div>
+    </div>
+
+    <label>Est. Resale Value ($)</label>
+    <input type="number" id="resale" placeholder="0.00">
+
+    <button class="btn-calc" onclick="calculate()">CALCULATE</button>
+    
+    <div id="result" class="result-box">
+        <h3 id="true-cost"></h3>
+        <p class="profit-display" id="net-profit"></p>
+        <p><a id="ebay-link" href="#" target="_blank">🔎 Check eBay Sold Listings</a></p>
+        <div id="advice-box"></div>
+        <button class="btn-win" onclick="recordWin()">🏆 RECORD WIN</button>
+    </div>
+
+    <div class="log-section">
+        <h3>📋 Won Items Log</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Bid</th>
+                    <th>All-In Cost</th>
+                </tr>
+            </thead>
+            <tbody id="log-table"></tbody>
+        </table>
+        <h3 class="grand-total">Total Invested: $<span id="grand-total">0.00</span></h3>
+        
+        <div class="action-row">
+            <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn-clear" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentTotalCost = 0;
+    let currentProfit = 0;
+    let savedData = [];
+
+    // The Magic: Try to extract a name from the URL
+    function autoFillName() {
+        let url = document.getElementById("url").value;
+        if (!url) return;
+        
+        try {
+            // Remove the domain (http://...)
+            let parts = url.split("/");
+            let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
+            
+            // If the URL contains dashes (common in ebay/ctbids), replace with spaces
+            if (lastPart && lastPart.includes("-")) {
+                // Remove weird numbers at the start if they exist
+                let cleanName = lastPart.replace(/^\d+-/, '').replace(/-/g, ' ');
+                // Remove query strings ?xyz=...
+                cleanName = cleanName.split("?")[0];
+                
+                // Capitalize first letter
+                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+                
+                document.getElementById("item").value = cleanName;
+            }
+        } catch (e) {
+            console.log("Could not auto-fill name");
+        }
+    }
+
+    function calculate() {
+        let bid = parseFloat(document.getElementById("bid").value);
+        if (!bid) return;
+
+        let item = document.getElementById("item").value;
+        let resale = parseFloat(document.getElementById("resale").value) || 0;
+        let shipping = parseFloat(document.getElementById("shipping").value) || 0;
+        let repair = parseFloat(document.getElementById("repair").value) || 0;
+        let premiumRate = parseFloat(document.getElementById("premium").value) || 0;
+        let taxRate = parseFloat(document.getElementById("tax").value) || 0;
+
+        let auctionCost = bid * (1 + premiumRate/100) * (1 + taxRate/100);
+        currentTotalCost = auctionCost + shipping + repair;
+        
+        document.getElementById("true-cost").innerText = "💰 All-In Cost: $" + currentTotalCost.toFixed(2);
+        
+        let profitHtml = "";
+        let adviceHtml = "";
+        
+        if (resale > 0) {
+            currentProfit = resale - currentTotalCost;
+            if (currentProfit > 0) {
+                document.getElementById("net-profit").innerHTML = "Est. Net Profit: <span style='color:#00cc96'>$" + currentProfit.toFixed(2) + "</span>";
+            } else {
+                document.getElementById("net-profit").innerHTML = "Est. Net Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + " (LOSS)</span>";
+            }
+
+            let profitGoal = 50.0;
+            let maxBid = (resale - profitGoal - shipping - repair) / (1 + premiumRate/100) / (1 + taxRate/100);
+            adviceHtml += "<hr><p>Max Bid Limit: <strong>$" + maxBid.toFixed(2) + "</strong></p>";
+            
+            if (bid > maxBid) {
+                adviceHtml += "<p class='stop'>🛑 STOP! Bad Deal</p>";
+            } else {
+                adviceHtml += "<p class='go'>✅ GO! Profitable</p>";
+            }
+        } else {
+            document.getElementById("net-profit").innerHTML = "";
+        }
+
+        let query = encodeURIComponent(item);
+        document.getElementById("ebay-link").href = "https://www.ebay.com/sch/i.html?_nkw=" + query + "&LH_Sold=1&LH_Complete=1";
+        
+        document.getElementById("advice-box").innerHTML = adviceHtml;
+        document.getElementById("result").style.display = "block";
+    }
+
+    function recordWin() {
+        let item = document.getElementById("item").value || "Unknown Item";
+        let bid = document.getElementById("bid").value;
+        let url = document.getElementById("url").value || "";
+        let repair = document.getElementById("repair").value || "0";
+        
+        let entry = { 
+            item: item, 
+            bid: bid, 
+            url: url,
+            repair: repair,
+            total: currentTotalCost.toFixed(2),
+            profit: currentProfit.toFixed(2)
+        };
+        savedData.push(entry);
+        localStorage.setItem("auctionLog", JSON.stringify(savedData));
+        renderTable();
+        
+        // Reset only the dynamic fields, keep Tax/Premium
+        document.getElementById("url").value = "";
+        document.getElementById("item").value = "";
+        document.getElementById("bid").value = "";
+        document.getElementById("resale").value = "";
+        document.getElementById("shipping").value = "";
+        document.getElementById("repair").value = "";
+        document.getElementById("result").style.display = "none";
+    }
+
+    function renderTable() {
+        let table = document.getElementById("log-table");
+        table.innerHTML = "";
+        let grandTotal = 0;
+        for (let i = savedData.length - 1; i >= 0; i--) {
+            let row = table.insertRow(-1);
+            let itemDisplay = savedData[i].url ? `<a href="${savedData[i].url}" target="_blank">${savedData[i].item}</a>` : savedData[i].item;
+            
+            row.innerHTML = `<td>${itemDisplay}</td><td>$${savedData[i].bid}</td><td>$${savedData[i].total}</td>`;
+            grandTotal += parseFloat(savedData[i].total);
+        }
+        document.getElementById("grand-total").innerText = grandTotal.toFixed(2);
+    }
+
+    function loadLog() {
+        let stored = localStorage.getItem("auctionLog");
+        if (stored) {
+            savedData = JSON.parse(stored);
+            renderTable();
+        }
+    }
+
+    function clearLog() {
+        if (confirm("Clear history?")) {
+            savedData = [];
+            localStorage.removeItem("auctionLog");
+            renderTable();
+        }
+    }
+
+    function exportCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,Item,URL,Bid Price,Repair Cost,All-In Cost,Est Profit\n";
+        savedData.forEach(function(row) {
+            // Escape commas in item names
+            let safeItem = row.item.replace(/,/g, " ");
+            csvContent += `${safeItem},${row.url},${row.bid},${row.repair},${row.total},${row.profit}\n`;
+        });
+        let encodedUri = encodeURI(csvContent);
+        let link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "auction_log.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
+</script>
+
+</body>
+</html>
