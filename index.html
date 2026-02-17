@@ -2,260 +2,384 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Auction House Calculator</title>
+    <title>Auction v4: Photo Ledger</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background-color: #0e1117; color: white; font-family: sans-serif; padding: 20px; }
-        .container { background-color: #262730; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
-        input { width: 95%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; }
+        body { background-color: #0e1117; color: white; font-family: sans-serif; padding: 10px; margin: 0; padding-bottom: 50px; }
+        
+        /* Navigation Tabs */
+        .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 15px; background-color: #262730; color: #888; border: none; font-size: 18px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #ffbd45; border-bottom: 3px solid #ffbd45; background-color: #1e1e24; }
+        
+        /* Containers */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .container { background-color: #262730; padding: 15px; border-radius: 10px; max-width: 600px; margin: auto; }
+        
+        /* Inputs */
+        input { width: 94%; padding: 12px; margin: 8px 0; border-radius: 5px; border: none; font-size: 16px; background-color: #1e2126; color: white; }
+        label { font-size: 13px; color: #aaa; display: block; margin-top: 5px; }
         .row { display: flex; gap: 10px; }
         .col { flex: 1; }
         
+        /* Photo Input Styling */
+        .photo-btn-label { display: block; background-color: #1e2126; color: #4facfe; padding: 12px; text-align: center; border-radius: 5px; cursor: pointer; border: 1px dashed #4facfe; margin-top: 10px; }
+        #photo-input { display: none; }
+        #preview-img { max-width: 100px; max-height: 100px; display: none; margin: 10px auto; border-radius: 5px; border: 1px solid #555; }
+        
+        /* Big Numbers */
+        .total-box { background-color: #1e2126; padding: 15px; border-radius: 5px; margin-top: 15px; text-align: center; border: 1px solid #444; }
+        .total-price { font-size: 28px; color: #00cc96; font-weight: bold; margin: 5px 0; }
+        .profit-text { font-size: 18px; margin-top: 5px; }
+        
         /* Buttons */
-        .btn-calc { width: 100%; padding: 15px; background-color: #ffbd45; color: black; font-weight: bold; border: none; border-radius: 5px; font-size: 18px; margin-top: 15px; cursor: pointer; }
-        .btn-win { width: 100%; padding: 15px; background-color: #00cc96; color: black; font-weight: bold; border: none; border-radius: 5px; font-size: 18px; margin-top: 10px; cursor: pointer; }
-        .btn-export { width: 48%; padding: 10px; background-color: #4facfe; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
-        .btn-clear { width: 48%; padding: 10px; background-color: #ff4b4b; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
-        .action-row { display: flex; justify-content: space-between; margin-top: 20px; }
-
-        /* Results */
-        .result-box { margin-top: 20px; padding: 15px; border: 1px solid #444; border-radius: 5px; display: none; }
-        a { color: #4facfe; text-decoration: none; font-size: 18px; }
-        .stop { color: #ff4b4b; font-weight: bold; font-size: 24px; }
-        .go { color: #00cc96; font-weight: bold; font-size: 24px; }
-        h1 { color: #ffbd45; text-align: center; }
-        label { font-size: 14px; color: #ccc; }
-        .profit-display { font-size: 18px; color: #4facfe; margin-top: 10px; font-weight: bold; }
-
-        /* Log Section */
-        .log-section { margin-top: 30px; border-top: 2px dashed #555; padding-top: 10px; }
+        .btn-save { width: 100%; padding: 15px; background-color: #ffbd45; color: black; font-weight: bold; border: none; border-radius: 5px; font-size: 18px; margin-top: 15px; cursor: pointer; }
+        .btn-export { background-color: #4facfe; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; margin-top: 10px; font-size: 16px; }
+        .btn-clear { background-color: #ff4b4b; color: white; padding: 10px; border-radius: 5px; border: none; width: 100%; margin-top: 10px; font-size: 16px; }
+        
+        /* Ledger Table */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; color: #ffbd45; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        td { padding: 8px 0; border-bottom: 1px solid #333; font-size: 14px; }
-        .grand-total { text-align: right; font-size: 20px; color: #00cc96; margin-top: 15px; }
-        .url-input { background-color: #1e2126; color: #4facfe; border: 1px solid #4facfe; }
+        th { text-align: left; color: #ffbd45; border-bottom: 1px solid #555; padding: 10px 5px; }
+        td { padding: 10px 5px; border-bottom: 1px solid #333; font-size: 14px; vertical-align: middle; }
+        .thumb-img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #555; }
+        .delete-btn { color: #ff4b4b; background: none; border: none; font-size: 16px; font-weight: bold; padding: 0 10px; }
+        
+        /* Modal for Viewing Image */
+        #img-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
+        #modal-content { margin: auto; display: block; max-width: 90%; max-height: 80%; margin-top: 50px; border-radius: 5px; }
+        #close-modal { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+
+        /* Helpers */
+        .stop { color: #ff4b4b; font-weight: bold; }
+        .go { color: #00cc96; font-weight: bold; }
+        .storage-bar { height: 5px; background-color: #333; margin-top: 20px; border-radius: 3px; overflow: hidden; }
+        .storage-fill { height: 100%; background-color: #00cc96; width: 0%; transition: width 0.5s; }
+        .storage-text { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
     </style>
 </head>
-<body onload="loadLog()">
+<body onload="initApp()">
 
-<div class="container">
-    <h1>🏛️ Auction House Calculator</h1>
-    
-    <label>Paste Auction Link (Auto-Fills Name)</label>
-    <input type="text" id="url" class="url-input" placeholder="Paste https://..." oninput="autoFillName()">
-
-    <label>Item Name</label>
-    <input type="text" id="item" placeholder="e.g. Ryobi Drill">
-    
-    <div class="row">
-        <div class="col">
-            <label>Buyer's Prem (%)</label>
-            <input type="number" id="premium" value="18">
-        </div>
-        <div class="col">
-            <label>Sales Tax (%)</label>
-            <input type="number" id="tax" value="9.25">
-        </div>
-    </div>
-
-    <label>Current Bid ($)</label>
-    <input type="number" id="bid" placeholder="0.00">
-    
-    <div class="row">
-        <div class="col">
-            <label>Est. Shipping ($)</label>
-            <input type="number" id="shipping" placeholder="0.00">
-        </div>
-        <div class="col">
-            <label>Repair/Parts ($)</label>
-            <input type="number" id="repair" placeholder="0.00">
-        </div>
-    </div>
-
-    <label>Est. Resale Value ($)</label>
-    <input type="number" id="resale" placeholder="0.00">
-
-    <button class="btn-calc" onclick="calculate()">CALCULATE</button>
-    
-    <div id="result" class="result-box">
-        <h3 id="true-cost"></h3>
-        <p class="profit-display" id="net-profit"></p>
-        <p><a id="ebay-link" href="#" target="_blank">🔎 Check eBay Sold Listings</a></p>
-        <div id="advice-box"></div>
-        <button class="btn-win" onclick="recordWin()">🏆 RECORD WIN</button>
-    </div>
-
-    <div class="log-section">
-        <h3>📋 Won Items Log</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Bid</th>
-                    <th>All-In Cost</th>
-                </tr>
-            </thead>
-            <tbody id="log-table"></tbody>
-        </table>
-        <h3 class="grand-total">Total Invested: $<span id="grand-total">0.00</span></h3>
-        
-        <div class="action-row">
-            <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
-            <button class="btn-clear" onclick="clearLog()">🗑️ Clear Log</button>
-        </div>
-    </div>
-
+<div class="nav-bar">
+    <button class="tab-btn active" onclick="switchTab('calc')">🧮 Calculator</button>
+    <button class="tab-btn" onclick="switchTab('ledger')">📷 Ledger</button>
 </div>
 
+<div id="calc" class="tab-content active">
+    <div class="container">
+        <label for="photo-input" class="photo-btn-label">📸 Take Photo / Select Image</label>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto()">
+        <img id="preview-img">
+
+        <label>Paste Link (Auto-Fills)</label>
+        <input type="text" id="url" placeholder="Paste https://..." oninput="autoFillName()">
+        
+        <label>Item Name</label>
+        <input type="text" id="item" placeholder="e.g. Ryobi Drill">
+
+        <div class="row">
+            <div class="col"><label>Buyer's Prem (%)</label><input type="number" id="premium" value="18" oninput="calculate()"></div>
+            <div class="col"><label>Sales Tax (%)</label><input type="number" id="tax" value="9.25" oninput="calculate()"></div>
+        </div>
+
+        <label style="color:#ffbd45; font-weight:bold;">Current Bid ($)</label>
+        <input type="number" id="bid" placeholder="0.00" style="font-size:22px; border:1px solid #ffbd45;" oninput="calculate()">
+        
+        <div class="row">
+            <div class="col"><label>Shipping ($)</label><input type="number" id="shipping" placeholder="0.00" oninput="calculate()"></div>
+            <div class="col"><label>Repairs ($)</label><input type="number" id="repair" placeholder="0.00" oninput="calculate()"></div>
+        </div>
+        <label>Est. Resale ($)</label>
+        <input type="number" id="resale" placeholder="0.00" oninput="calculate()">
+
+        <div class="total-box">
+            <div style="font-size:14px; color:#aaa;">TRUE COST</div>
+            <div class="total-price" id="total-display">$0.00</div>
+            <div id="profit-display" class="profit-text"></div>
+            <div id="advice-box" style="margin-top:10px;"></div>
+        </div>
+
+        <button class="btn-save" id="save-btn" onclick="processAndSave()">📥 SAVE ENTRY</button>
+    </div>
+</div>
+
+<div id="ledger" class="tab-content">
+    <div class="container">
+        <h3 style="color:#ffbd45; text-align:center;">Inventory Log</h3>
+        <h2 style="text-align:center; color:#00cc96;" id="grand-total">$0.00 Invested</h2>
+        
+        <table>
+            <thead><tr><th>Photo</th><th>Item</th><th>Cost</th><th>X</th></tr></thead>
+            <tbody id="ledger-table"></tbody>
+        </table>
+
+        <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
+        <div class="storage-text" id="storage-text">Storage: 0%</div>
+
+        <div style="margin-top:20px;">
+            <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn-clear" onclick="clearLedger()">🗑️ Wipe History</button>
+        </div>
+    </div>
+</div>
+
+<div id="img-modal" onclick="closeModal()">
+    <span id="close-modal">&times;</span>
+    <img id="modal-content">
+</div>
+
+<footer style="text-align: center; font-size: 11px; color: #666; margin-top: 30px; border-top: 1px solid #333; padding: 20px;">
+    <p><strong>LEGAL DISCLAIMER:</strong> Provided "As-Is" without warranty.</p>
+    <p>Developer not liable for losses. &copy; 2026 Auction Calculator.</p>
+</footer>
+
 <script>
-    let currentTotalCost = 0;
-    let currentProfit = 0;
     let savedData = [];
+    let currentCost = 0;
+    let currentProfit = 0;
+    let currentPhotoBase64 = ""; // Holds the compressed image string
 
-    // The Magic: Try to extract a name from the URL
-    function autoFillName() {
-        let url = document.getElementById("url").value;
-        if (!url) return;
-        
-        try {
-            // Remove the domain (http://...)
-            let parts = url.split("/");
-            let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
-            
-            // If the URL contains dashes (common in ebay/ctbids), replace with spaces
-            if (lastPart && lastPart.includes("-")) {
-                // Remove weird numbers at the start if they exist
-                let cleanName = lastPart.replace(/^\d+-/, '').replace(/-/g, ' ');
-                // Remove query strings ?xyz=...
-                cleanName = cleanName.split("?")[0];
-                
-                // Capitalize first letter
-                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-                
-                document.getElementById("item").value = cleanName;
-            }
-        } catch (e) {
-            console.log("Could not auto-fill name");
+    function initApp() {
+        let stored = localStorage.getItem("auctionV4");
+        if (stored) {
+            savedData = JSON.parse(stored);
+            renderLedger();
+        }
+        updateStorageMeter();
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        if(tabName === 'calc') document.querySelector('button[onclick="switchTab(\'calc\')"]').classList.add('active');
+        if(tabName === 'ledger') document.querySelector('button[onclick="switchTab(\'ledger\')"]').classList.add('active');
+    }
+
+    // --- Photo Logic ---
+    function previewPhoto() {
+        let file = document.getElementById("photo-input").files[0];
+        if (file) {
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("preview-img").src = e.target.result;
+                document.getElementById("preview-img").style.display = "block";
+                document.querySelector(".photo-btn-label").innerText = "✅ Photo Selected";
+                document.querySelector(".photo-btn-label").style.borderColor = "#00cc96";
+                document.querySelector(".photo-btn-label").style.color = "#00cc96";
+            };
+            reader.readAsDataURL(file);
         }
     }
 
-    function calculate() {
-        let bid = parseFloat(document.getElementById("bid").value);
-        if (!bid) return;
-
-        let item = document.getElementById("item").value;
-        let resale = parseFloat(document.getElementById("resale").value) || 0;
-        let shipping = parseFloat(document.getElementById("shipping").value) || 0;
-        let repair = parseFloat(document.getElementById("repair").value) || 0;
-        let premiumRate = parseFloat(document.getElementById("premium").value) || 0;
-        let taxRate = parseFloat(document.getElementById("tax").value) || 0;
-
-        let auctionCost = bid * (1 + premiumRate/100) * (1 + taxRate/100);
-        currentTotalCost = auctionCost + shipping + repair;
-        
-        document.getElementById("true-cost").innerText = "💰 All-In Cost: $" + currentTotalCost.toFixed(2);
-        
-        let profitHtml = "";
-        let adviceHtml = "";
-        
-        if (resale > 0) {
-            currentProfit = resale - currentTotalCost;
-            if (currentProfit > 0) {
-                document.getElementById("net-profit").innerHTML = "Est. Net Profit: <span style='color:#00cc96'>$" + currentProfit.toFixed(2) + "</span>";
-            } else {
-                document.getElementById("net-profit").innerHTML = "Est. Net Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + " (LOSS)</span>";
+    // Helper: Compress Image to < 300px
+    function compressImage(file, callback) {
+        let reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            let img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                let canvas = document.createElement("canvas");
+                let ctx = canvas.getContext("2d");
+                
+                // Resize logic (Max 300px)
+                let maxWidth = 300;
+                let scaleSize = maxWidth / img.width;
+                if (scaleSize > 1) scaleSize = 1; // Don't upscale
+                
+                canvas.width = img.width * scaleSize;
+                canvas.height = img.height * scaleSize;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Export as Low Quality JPEG (0.5)
+                let dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+                callback(dataUrl);
             }
+        }
+    }
 
-            let profitGoal = 50.0;
-            let maxBid = (resale - profitGoal - shipping - repair) / (1 + premiumRate/100) / (1 + taxRate/100);
-            adviceHtml += "<hr><p>Max Bid Limit: <strong>$" + maxBid.toFixed(2) + "</strong></p>";
-            
-            if (bid > maxBid) {
-                adviceHtml += "<p class='stop'>🛑 STOP! Bad Deal</p>";
-            } else {
-                adviceHtml += "<p class='go'>✅ GO! Profitable</p>";
-            }
+    // --- Save Logic ---
+    function processAndSave() {
+        let btn = document.getElementById("save-btn");
+        let file = document.getElementById("photo-input").files[0];
+        let bid = document.getElementById("bid").value;
+
+        if (!bid) { alert("Enter a bid first!"); return; }
+        
+        btn.innerText = "⏳ Compressing...";
+
+        if (file) {
+            compressImage(file, function(base64) {
+                currentPhotoBase64 = base64;
+                saveToLedger();
+                btn.innerText = "📥 SAVE ENTRY";
+            });
         } else {
-            document.getElementById("net-profit").innerHTML = "";
+            currentPhotoBase64 = ""; // No photo
+            saveToLedger();
+            btn.innerText = "📥 SAVE ENTRY";
         }
-
-        let query = encodeURIComponent(item);
-        document.getElementById("ebay-link").href = "https://www.ebay.com/sch/i.html?_nkw=" + query + "&LH_Sold=1&LH_Complete=1";
-        
-        document.getElementById("advice-box").innerHTML = adviceHtml;
-        document.getElementById("result").style.display = "block";
     }
 
-    function recordWin() {
+    function saveToLedger() {
         let item = document.getElementById("item").value || "Unknown Item";
         let bid = document.getElementById("bid").value;
-        let url = document.getElementById("url").value || "";
-        let repair = document.getElementById("repair").value || "0";
-        
-        let entry = { 
-            item: item, 
-            bid: bid, 
+        let url = document.getElementById("url").value;
+
+        let entry = {
+            item: item,
+            bid: bid,
+            total: currentCost.toFixed(2),
+            profit: currentProfit.toFixed(2),
             url: url,
-            repair: repair,
-            total: currentTotalCost.toFixed(2),
-            profit: currentProfit.toFixed(2)
+            photo: currentPhotoBase64 // Save the string
         };
+
         savedData.push(entry);
-        localStorage.setItem("auctionLog", JSON.stringify(savedData));
-        renderTable();
+        try {
+            localStorage.setItem("auctionV4", JSON.stringify(savedData));
+        } catch (e) {
+            alert("⚠️ Storage Full! Delete some old items.");
+            savedData.pop(); // Undo add
+            return;
+        }
         
-        // Reset only the dynamic fields, keep Tax/Premium
-        document.getElementById("url").value = "";
+        resetInputs();
+        renderLedger();
+        alert("Saved: " + item);
+    }
+
+    function resetInputs() {
         document.getElementById("item").value = "";
         document.getElementById("bid").value = "";
+        document.getElementById("url").value = "";
         document.getElementById("resale").value = "";
         document.getElementById("shipping").value = "";
         document.getElementById("repair").value = "";
-        document.getElementById("result").style.display = "none";
+        document.getElementById("photo-input").value = ""; // Clear file
+        document.getElementById("preview-img").style.display = "none";
+        document.querySelector(".photo-btn-label").innerText = "📸 Take Photo / Select Image";
+        document.querySelector(".photo-btn-label").style.borderColor = "#4facfe";
+        document.querySelector(".photo-btn-label").style.color = "#4facfe";
+        document.getElementById("total-display").innerText = "$0.00";
+        document.getElementById("profit-display").innerText = "";
+        document.getElementById("advice-box").innerText = "";
     }
 
-    function renderTable() {
-        let table = document.getElementById("log-table");
+    // --- Ledger & Display ---
+    function renderLedger() {
+        let table = document.getElementById("ledger-table");
         table.innerHTML = "";
         let grandTotal = 0;
+
         for (let i = savedData.length - 1; i >= 0; i--) {
             let row = table.insertRow(-1);
-            let itemDisplay = savedData[i].url ? `<a href="${savedData[i].url}" target="_blank">${savedData[i].item}</a>` : savedData[i].item;
+            let itemText = savedData[i].url ? `<a href="${savedData[i].url}" target="_blank" style="color:#4facfe;">${savedData[i].item}</a>` : savedData[i].item;
             
-            row.innerHTML = `<td>${itemDisplay}</td><td>$${savedData[i].bid}</td><td>$${savedData[i].total}</td>`;
+            // Photo Logic
+            let photoHtml = savedData[i].photo ? 
+                `<img src="${savedData[i].photo}" class="thumb-img" onclick="viewImage('${savedData[i].photo}')">` : 
+                `<span style="font-size:20px;">📦</span>`;
+
+            row.innerHTML = `
+                <td>${photoHtml}</td>
+                <td>${itemText}</td>
+                <td>$${savedData[i].total}</td>
+                <td><button class="delete-btn" onclick="deleteItem(${i})">X</button></td>
+            `;
             grandTotal += parseFloat(savedData[i].total);
         }
-        document.getElementById("grand-total").innerText = grandTotal.toFixed(2);
+        document.getElementById("grand-total").innerText = "Total Invested: $" + grandTotal.toFixed(2);
+        updateStorageMeter();
     }
 
-    function loadLog() {
-        let stored = localStorage.getItem("auctionLog");
-        if (stored) {
-            savedData = JSON.parse(stored);
-            renderTable();
+    function viewImage(src) {
+        let modal = document.getElementById("img-modal");
+        let modalImg = document.getElementById("modal-content");
+        modal.style.display = "block";
+        modalImg.src = src;
+    }
+
+    function closeModal() {
+        document.getElementById("img-modal").style.display = "none";
+    }
+
+    function updateStorageMeter() {
+        let used = JSON.stringify(savedData).length;
+        let max = 5000000; // ~5MB
+        let pct = (used / max) * 100;
+        document.getElementById("storage-fill").style.width = pct + "%";
+        document.getElementById("storage-text").innerText = "Storage Used: " + pct.toFixed(1) + "% (Max 5MB)";
+        
+        if (pct > 90) document.getElementById("storage-fill").style.backgroundColor = "#ff4b4b";
+    }
+
+    // --- Standard Math & Helpers ---
+    function autoFillName() { /* Same as V3 */ 
+        let url = document.getElementById("url").value;
+        if (!url) return;
+        try {
+            let parts = url.split("/");
+            let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
+            if (lastPart && lastPart.includes("-")) {
+                let cleanName = lastPart.replace(/^\d+-/, '').replace(/-/g, ' ').split("?")[0];
+                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+                document.getElementById("item").value = cleanName;
+            }
+        } catch (e) {}
+    }
+    
+    function calculate() { /* Same as V3 */
+        let bid = parseFloat(document.getElementById("bid").value) || 0;
+        let premium = parseFloat(document.getElementById("premium").value) || 0;
+        let tax = parseFloat(document.getElementById("tax").value) || 0;
+        let shipping = parseFloat(document.getElementById("shipping").value) || 0;
+        let repair = parseFloat(document.getElementById("repair").value) || 0;
+        let resale = parseFloat(document.getElementById("resale").value) || 0;
+        let auctionCost = bid * (1 + premium/100) * (1 + tax/100);
+        currentCost = auctionCost + shipping + repair;
+        document.getElementById("total-display").innerText = "$" + currentCost.toFixed(2);
+        if (resale > 0) {
+            currentProfit = resale - currentCost;
+            let profitEl = document.getElementById("profit-display");
+            if (currentProfit > 0) {
+                profitEl.innerHTML = "Est. Profit: <span style='color:#00cc96'>+$" + currentProfit.toFixed(2) + "</span>";
+                document.getElementById("advice-box").innerHTML = "<span class='go'>✅ GO</span>";
+            } else {
+                profitEl.innerHTML = "Est. Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + "</span>";
+                document.getElementById("advice-box").innerHTML = "<span class='stop'>🛑 STOP (Loss)</span>";
+            }
+        } else {
+            document.getElementById("profit-display").innerText = "";
+            document.getElementById("advice-box").innerHTML = "";
         }
     }
 
-    function clearLog() {
-        if (confirm("Clear history?")) {
+    function deleteItem(index) {
+        if(confirm("Delete this line?")) {
+            savedData.splice(index, 1);
+            localStorage.setItem("auctionV4", JSON.stringify(savedData));
+            renderLedger();
+        }
+    }
+    function clearLedger() {
+        if(confirm("Are you sure? This deletes ALL history.")) {
             savedData = [];
-            localStorage.removeItem("auctionLog");
-            renderTable();
+            localStorage.removeItem("auctionV4");
+            renderLedger();
         }
     }
-
     function exportCSV() {
-        let csvContent = "data:text/csv;charset=utf-8,Item,URL,Bid Price,Repair Cost,All-In Cost,Est Profit\n";
-        savedData.forEach(function(row) {
-            // Escape commas in item names
+        let csv = "Item,Bid,True Cost,Link,Photo(Base64)\n";
+        savedData.forEach(row => {
             let safeItem = row.item.replace(/,/g, " ");
-            csvContent += `${safeItem},${row.url},${row.bid},${row.repair},${row.total},${row.profit}\n`;
+            csv += `${safeItem},${row.bid},${row.total},${row.url},"${row.photo ? 'Yes' : 'No'}"\n`;
         });
-        let encodedUri = encodeURI(csvContent);
         let link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "auction_log.csv");
-        document.body.appendChild(link);
+        link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+        link.download = "auction_ledger_photos.csv";
         link.click();
     }
 </script>
