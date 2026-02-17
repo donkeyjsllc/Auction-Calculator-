@@ -2,16 +2,20 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Auction v4: Photo Ledger</title>
+    <title>Auction V5: Pro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="manifest.json">
     <style>
-        body { background-color: #0e1117; color: white; font-family: sans-serif; padding: 10px; margin: 0; padding-bottom: 50px; }
+        body { background-color: #0e1117; color: white; font-family: sans-serif; padding: 10px; margin: 0; padding-bottom: 100px; }
         
         /* Navigation Tabs */
         .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { flex: 1; padding: 15px; background-color: #262730; color: #888; border: none; font-size: 18px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
         .tab-btn.active { color: #ffbd45; border-bottom: 3px solid #ffbd45; background-color: #1e1e24; }
         
+        /* Install Button (Hidden by default) */
+        #install-btn { display: none; background-color: #00cc96; color: black; font-weight: bold; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 15px; cursor: pointer; }
+
         /* Containers */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -23,12 +27,12 @@
         .row { display: flex; gap: 10px; }
         .col { flex: 1; }
         
-        /* Photo Input Styling */
+        /* Photo Input */
         .photo-btn-label { display: block; background-color: #1e2126; color: #4facfe; padding: 12px; text-align: center; border-radius: 5px; cursor: pointer; border: 1px dashed #4facfe; margin-top: 10px; }
         #photo-input { display: none; }
         #preview-img { max-width: 100px; max-height: 100px; display: none; margin: 10px auto; border-radius: 5px; border: 1px solid #555; }
         
-        /* Big Numbers */
+        /* Results */
         .total-box { background-color: #1e2126; padding: 15px; border-radius: 5px; margin-top: 15px; text-align: center; border: 1px solid #444; }
         .total-price { font-size: 28px; color: #00cc96; font-weight: bold; margin: 5px 0; }
         .profit-text { font-size: 18px; margin-top: 5px; }
@@ -45,20 +49,31 @@
         .thumb-img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #555; }
         .delete-btn { color: #ff4b4b; background: none; border: none; font-size: 16px; font-weight: bold; padding: 0 10px; }
         
-        /* Modal for Viewing Image */
+        /* Modals & Meters */
         #img-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
         #modal-content { margin: auto; display: block; max-width: 90%; max-height: 80%; margin-top: 50px; border-radius: 5px; }
         #close-modal { position: absolute; top: 20px; right: 30px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
-
-        /* Helpers */
-        .stop { color: #ff4b4b; font-weight: bold; }
-        .go { color: #00cc96; font-weight: bold; }
         .storage-bar { height: 5px; background-color: #333; margin-top: 20px; border-radius: 3px; overflow: hidden; }
         .storage-fill { height: 100%; background-color: #00cc96; width: 0%; transition: width 0.5s; }
         .storage-text { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
+
+        /* LEGAL FOOTER - HIGH VISIBILITY */
+        footer { 
+            text-align: center; 
+            font-size: 12px; 
+            color: #ccc; 
+            margin-top: 40px; 
+            border: 1px solid #555; 
+            background-color: #1a1a1a; 
+            padding: 20px; 
+            border-radius: 8px;
+        }
+        .disclaimer-title { color: #ff4b4b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body onload="initApp()">
+
+<div id="install-btn" onclick="installApp()">📲 Install App to Home Screen</div>
 
 <div class="nav-bar">
     <button class="tab-btn active" onclick="switchTab('calc')">🧮 Calculator</button>
@@ -70,35 +85,28 @@
         <label for="photo-input" class="photo-btn-label">📸 Take Photo / Select Image</label>
         <input type="file" id="photo-input" accept="image/*" capture="environment" onchange="previewPhoto()">
         <img id="preview-img">
-
         <label>Paste Link (Auto-Fills)</label>
         <input type="text" id="url" placeholder="Paste https://..." oninput="autoFillName()">
-        
         <label>Item Name</label>
         <input type="text" id="item" placeholder="e.g. Ryobi Drill">
-
         <div class="row">
             <div class="col"><label>Buyer's Prem (%)</label><input type="number" id="premium" value="18" oninput="calculate()"></div>
             <div class="col"><label>Sales Tax (%)</label><input type="number" id="tax" value="9.25" oninput="calculate()"></div>
         </div>
-
         <label style="color:#ffbd45; font-weight:bold;">Current Bid ($)</label>
         <input type="number" id="bid" placeholder="0.00" style="font-size:22px; border:1px solid #ffbd45;" oninput="calculate()">
-        
         <div class="row">
             <div class="col"><label>Shipping ($)</label><input type="number" id="shipping" placeholder="0.00" oninput="calculate()"></div>
             <div class="col"><label>Repairs ($)</label><input type="number" id="repair" placeholder="0.00" oninput="calculate()"></div>
         </div>
         <label>Est. Resale ($)</label>
         <input type="number" id="resale" placeholder="0.00" oninput="calculate()">
-
         <div class="total-box">
             <div style="font-size:14px; color:#aaa;">TRUE COST</div>
             <div class="total-price" id="total-display">$0.00</div>
             <div id="profit-display" class="profit-text"></div>
             <div id="advice-box" style="margin-top:10px;"></div>
         </div>
-
         <button class="btn-save" id="save-btn" onclick="processAndSave()">📥 SAVE ENTRY</button>
     </div>
 </div>
@@ -107,15 +115,9 @@
     <div class="container">
         <h3 style="color:#ffbd45; text-align:center;">Inventory Log</h3>
         <h2 style="text-align:center; color:#00cc96;" id="grand-total">$0.00 Invested</h2>
-        
-        <table>
-            <thead><tr><th>Photo</th><th>Item</th><th>Cost</th><th>X</th></tr></thead>
-            <tbody id="ledger-table"></tbody>
-        </table>
-
+        <table><thead><tr><th>Photo</th><th>Item</th><th>Cost</th><th>X</th></tr></thead><tbody id="ledger-table"></tbody></table>
         <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
         <div class="storage-text" id="storage-text">Storage: 0%</div>
-
         <div style="margin-top:20px;">
             <button class="btn-export" onclick="exportCSV()">📥 Export CSV</button>
             <button class="btn-clear" onclick="clearLedger()">🗑️ Wipe History</button>
@@ -123,29 +125,44 @@
     </div>
 </div>
 
-<div id="img-modal" onclick="closeModal()">
-    <span id="close-modal">&times;</span>
-    <img id="modal-content">
-</div>
-
-<footer style="text-align: center; font-size: 11px; color: #666; margin-top: 30px; border-top: 1px solid #333; padding: 20px;">
-    <p><strong>LEGAL DISCLAIMER:</strong> Provided "As-Is" without warranty.</p>
-    <p>Developer not liable for losses. &copy; 2026 Auction Calculator.</p>
+<footer>
+    <span class="disclaimer-title">⚠️ LEGAL DISCLAIMER</span>
+    <p>This application is provided "As-Is" for <strong>estimation purposes only</strong>.</p>
+    <p>Calculations do not constitute financial advice. The developer is <strong>not liable</strong> for any financial losses, overbidding, or errors resulting from the use of this tool.</p>
+    <p>Always verify auction terms and fees independently.</p>
+    <p>&copy; 2026 Auction Calculator. Data Stored Locally.</p>
 </footer>
 
+<div id="img-modal" onclick="closeModal()"><span id="close-modal">&times;</span><img id="modal-content"></div>
+
 <script>
-    let savedData = [];
-    let currentCost = 0;
-    let currentProfit = 0;
-    let currentPhotoBase64 = ""; // Holds the compressed image string
+    let savedData = []; let currentCost = 0; let currentProfit = 0; let currentPhotoBase64 = "";
+    let deferredPrompt;
 
     function initApp() {
         let stored = localStorage.getItem("auctionV4");
-        if (stored) {
-            savedData = JSON.parse(stored);
-            renderLedger();
-        }
+        if (stored) { savedData = JSON.parse(stored); renderLedger(); }
         updateStorageMeter();
+    }
+
+    // --- INSTALL LOGIC ---
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('install-btn').style.display = 'block';
+    });
+
+    async function installApp() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                document.getElementById('install-btn').style.display = 'none';
+            }
+            deferredPrompt = null;
+        } else {
+            alert("To install: Tap the 3 dots (top right) -> 'Add to Home screen'");
+        }
     }
 
     function switchTab(tabName) {
@@ -155,8 +172,6 @@
         if(tabName === 'calc') document.querySelector('button[onclick="switchTab(\'calc\')"]').classList.add('active');
         if(tabName === 'ledger') document.querySelector('button[onclick="switchTab(\'ledger\')"]').classList.add('active');
     }
-
-    // --- Photo Logic ---
     function previewPhoto() {
         let file = document.getElementById("photo-input").files[0];
         if (file) {
@@ -171,216 +186,83 @@
             reader.readAsDataURL(file);
         }
     }
-
-    // Helper: Compress Image to < 300px
     function compressImage(file, callback) {
-        let reader = new FileReader();
-        reader.readAsDataURL(file);
+        let reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = function(event) {
-            let img = new Image();
-            img.src = event.target.result;
+            let img = new Image(); img.src = event.target.result;
             img.onload = function() {
-                let canvas = document.createElement("canvas");
-                let ctx = canvas.getContext("2d");
-                
-                // Resize logic (Max 300px)
-                let maxWidth = 300;
-                let scaleSize = maxWidth / img.width;
-                if (scaleSize > 1) scaleSize = 1; // Don't upscale
-                
-                canvas.width = img.width * scaleSize;
-                canvas.height = img.height * scaleSize;
-                
+                let canvas = document.createElement("canvas"); let ctx = canvas.getContext("2d");
+                let maxWidth = 300; let scaleSize = maxWidth / img.width; if (scaleSize > 1) scaleSize = 1;
+                canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Export as Low Quality JPEG (0.5)
-                let dataUrl = canvas.toDataURL("image/jpeg", 0.5);
-                callback(dataUrl);
+                let dataUrl = canvas.toDataURL("image/jpeg", 0.5); callback(dataUrl);
             }
         }
     }
-
-    // --- Save Logic ---
     function processAndSave() {
-        let btn = document.getElementById("save-btn");
-        let file = document.getElementById("photo-input").files[0];
-        let bid = document.getElementById("bid").value;
-
+        let btn = document.getElementById("save-btn"); let file = document.getElementById("photo-input").files[0]; let bid = document.getElementById("bid").value;
         if (!bid) { alert("Enter a bid first!"); return; }
-        
         btn.innerText = "⏳ Compressing...";
-
-        if (file) {
-            compressImage(file, function(base64) {
-                currentPhotoBase64 = base64;
-                saveToLedger();
-                btn.innerText = "📥 SAVE ENTRY";
-            });
-        } else {
-            currentPhotoBase64 = ""; // No photo
-            saveToLedger();
-            btn.innerText = "📥 SAVE ENTRY";
-        }
+        if (file) { compressImage(file, function(base64) { currentPhotoBase64 = base64; saveToLedger(); btn.innerText = "📥 SAVE ENTRY"; }); } 
+        else { currentPhotoBase64 = ""; saveToLedger(); btn.innerText = "📥 SAVE ENTRY"; }
     }
-
     function saveToLedger() {
-        let item = document.getElementById("item").value || "Unknown Item";
-        let bid = document.getElementById("bid").value;
-        let url = document.getElementById("url").value;
-
-        let entry = {
-            item: item,
-            bid: bid,
-            total: currentCost.toFixed(2),
-            profit: currentProfit.toFixed(2),
-            url: url,
-            photo: currentPhotoBase64 // Save the string
-        };
-
+        let item = document.getElementById("item").value || "Unknown Item"; let bid = document.getElementById("bid").value; let url = document.getElementById("url").value;
+        let entry = { item: item, bid: bid, total: currentCost.toFixed(2), profit: currentProfit.toFixed(2), url: url, photo: currentPhotoBase64 };
         savedData.push(entry);
-        try {
-            localStorage.setItem("auctionV4", JSON.stringify(savedData));
-        } catch (e) {
-            alert("⚠️ Storage Full! Delete some old items.");
-            savedData.pop(); // Undo add
-            return;
-        }
-        
-        resetInputs();
-        renderLedger();
-        alert("Saved: " + item);
+        try { localStorage.setItem("auctionV4", JSON.stringify(savedData)); } catch (e) { alert("⚠️ Storage Full!"); savedData.pop(); return; }
+        resetInputs(); renderLedger(); alert("Saved: " + item);
     }
-
     function resetInputs() {
-        document.getElementById("item").value = "";
-        document.getElementById("bid").value = "";
-        document.getElementById("url").value = "";
-        document.getElementById("resale").value = "";
-        document.getElementById("shipping").value = "";
-        document.getElementById("repair").value = "";
-        document.getElementById("photo-input").value = ""; // Clear file
-        document.getElementById("preview-img").style.display = "none";
+        document.getElementById("item").value = ""; document.getElementById("bid").value = ""; document.getElementById("url").value = "";
+        document.getElementById("resale").value = ""; document.getElementById("shipping").value = ""; document.getElementById("repair").value = "";
+        document.getElementById("photo-input").value = ""; document.getElementById("preview-img").style.display = "none";
         document.querySelector(".photo-btn-label").innerText = "📸 Take Photo / Select Image";
         document.querySelector(".photo-btn-label").style.borderColor = "#4facfe";
         document.querySelector(".photo-btn-label").style.color = "#4facfe";
-        document.getElementById("total-display").innerText = "$0.00";
-        document.getElementById("profit-display").innerText = "";
-        document.getElementById("advice-box").innerText = "";
+        document.getElementById("total-display").innerText = "$0.00"; document.getElementById("profit-display").innerText = ""; document.getElementById("advice-box").innerText = "";
     }
-
-    // --- Ledger & Display ---
     function renderLedger() {
-        let table = document.getElementById("ledger-table");
-        table.innerHTML = "";
-        let grandTotal = 0;
-
+        let table = document.getElementById("ledger-table"); table.innerHTML = ""; let grandTotal = 0;
         for (let i = savedData.length - 1; i >= 0; i--) {
             let row = table.insertRow(-1);
             let itemText = savedData[i].url ? `<a href="${savedData[i].url}" target="_blank" style="color:#4facfe;">${savedData[i].item}</a>` : savedData[i].item;
-            
-            // Photo Logic
-            let photoHtml = savedData[i].photo ? 
-                `<img src="${savedData[i].photo}" class="thumb-img" onclick="viewImage('${savedData[i].photo}')">` : 
-                `<span style="font-size:20px;">📦</span>`;
-
-            row.innerHTML = `
-                <td>${photoHtml}</td>
-                <td>${itemText}</td>
-                <td>$${savedData[i].total}</td>
-                <td><button class="delete-btn" onclick="deleteItem(${i})">X</button></td>
-            `;
+            let photoHtml = savedData[i].photo ? `<img src="${savedData[i].photo}" class="thumb-img" onclick="viewImage('${savedData[i].photo}')">` : `<span style="font-size:20px;">📦</span>`;
+            row.innerHTML = `<td>${photoHtml}</td><td>${itemText}</td><td>$${savedData[i].total}</td><td><button class="delete-btn" onclick="deleteItem(${i})">X</button></td>`;
             grandTotal += parseFloat(savedData[i].total);
         }
-        document.getElementById("grand-total").innerText = "Total Invested: $" + grandTotal.toFixed(2);
-        updateStorageMeter();
+        document.getElementById("grand-total").innerText = "Total Invested: $" + grandTotal.toFixed(2); updateStorageMeter();
     }
-
-    function viewImage(src) {
-        let modal = document.getElementById("img-modal");
-        let modalImg = document.getElementById("modal-content");
-        modal.style.display = "block";
-        modalImg.src = src;
-    }
-
-    function closeModal() {
-        document.getElementById("img-modal").style.display = "none";
-    }
-
+    function viewImage(src) { document.getElementById("img-modal").style.display = "block"; document.getElementById("modal-content").src = src; }
+    function closeModal() { document.getElementById("img-modal").style.display = "none"; }
     function updateStorageMeter() {
-        let used = JSON.stringify(savedData).length;
-        let max = 5000000; // ~5MB
-        let pct = (used / max) * 100;
-        document.getElementById("storage-fill").style.width = pct + "%";
-        document.getElementById("storage-text").innerText = "Storage Used: " + pct.toFixed(1) + "% (Max 5MB)";
-        
+        let used = JSON.stringify(savedData).length; let max = 5000000; let pct = (used / max) * 100;
+        document.getElementById("storage-fill").style.width = pct + "%"; document.getElementById("storage-text").innerText = "Storage Used: " + pct.toFixed(1) + "%";
         if (pct > 90) document.getElementById("storage-fill").style.backgroundColor = "#ff4b4b";
     }
-
-    // --- Standard Math & Helpers ---
-    function autoFillName() { /* Same as V3 */ 
-        let url = document.getElementById("url").value;
-        if (!url) return;
-        try {
-            let parts = url.split("/");
-            let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
-            if (lastPart && lastPart.includes("-")) {
-                let cleanName = lastPart.replace(/^\d+-/, '').replace(/-/g, ' ').split("?")[0];
-                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-                document.getElementById("item").value = cleanName;
-            }
+    function autoFillName() { 
+        let url = document.getElementById("url").value; if (!url) return;
+        try { let parts = url.split("/"); let lastPart = parts[parts.length - 1] || parts[parts.length - 2];
+            if (lastPart && lastPart.includes("-")) { let cleanName = lastPart.replace(/^\d+-/, '').replace(/-/g, ' ').split("?")[0];
+                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1); document.getElementById("item").value = cleanName; }
         } catch (e) {}
     }
-    
-    function calculate() { /* Same as V3 */
-        let bid = parseFloat(document.getElementById("bid").value) || 0;
-        let premium = parseFloat(document.getElementById("premium").value) || 0;
-        let tax = parseFloat(document.getElementById("tax").value) || 0;
-        let shipping = parseFloat(document.getElementById("shipping").value) || 0;
-        let repair = parseFloat(document.getElementById("repair").value) || 0;
-        let resale = parseFloat(document.getElementById("resale").value) || 0;
-        let auctionCost = bid * (1 + premium/100) * (1 + tax/100);
-        currentCost = auctionCost + shipping + repair;
+    function calculate() {
+        let bid = parseFloat(document.getElementById("bid").value) || 0; let premium = parseFloat(document.getElementById("premium").value) || 0;
+        let tax = parseFloat(document.getElementById("tax").value) || 0; let shipping = parseFloat(document.getElementById("shipping").value) || 0;
+        let repair = parseFloat(document.getElementById("repair").value) || 0; let resale = parseFloat(document.getElementById("resale").value) || 0;
+        let auctionCost = bid * (1 + premium/100) * (1 + tax/100); currentCost = auctionCost + shipping + repair;
         document.getElementById("total-display").innerText = "$" + currentCost.toFixed(2);
-        if (resale > 0) {
-            currentProfit = resale - currentCost;
-            let profitEl = document.getElementById("profit-display");
-            if (currentProfit > 0) {
-                profitEl.innerHTML = "Est. Profit: <span style='color:#00cc96'>+$" + currentProfit.toFixed(2) + "</span>";
-                document.getElementById("advice-box").innerHTML = "<span class='go'>✅ GO</span>";
-            } else {
-                profitEl.innerHTML = "Est. Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + "</span>";
-                document.getElementById("advice-box").innerHTML = "<span class='stop'>🛑 STOP (Loss)</span>";
-            }
-        } else {
-            document.getElementById("profit-display").innerText = "";
-            document.getElementById("advice-box").innerHTML = "";
-        }
+        if (resale > 0) { currentProfit = resale - currentCost; let profitEl = document.getElementById("profit-display");
+            if (currentProfit > 0) { profitEl.innerHTML = "Est. Profit: <span style='color:#00cc96'>+$" + currentProfit.toFixed(2) + "</span>"; document.getElementById("advice-box").innerHTML = "<span class='go'>✅ GO</span>"; }
+            else { profitEl.innerHTML = "Est. Profit: <span style='color:#ff4b4b'>-$" + Math.abs(currentProfit).toFixed(2) + "</span>"; document.getElementById("advice-box").innerHTML = "<span class='stop'>🛑 STOP (Loss)</span>"; }
+        } else { document.getElementById("profit-display").innerText = ""; document.getElementById("advice-box").innerHTML = ""; }
     }
-
-    function deleteItem(index) {
-        if(confirm("Delete this line?")) {
-            savedData.splice(index, 1);
-            localStorage.setItem("auctionV4", JSON.stringify(savedData));
-            renderLedger();
-        }
-    }
-    function clearLedger() {
-        if(confirm("Are you sure? This deletes ALL history.")) {
-            savedData = [];
-            localStorage.removeItem("auctionV4");
-            renderLedger();
-        }
-    }
+    function deleteItem(index) { if(confirm("Delete this line?")) { savedData.splice(index, 1); localStorage.setItem("auctionV4", JSON.stringify(savedData)); renderLedger(); } }
+    function clearLedger() { if(confirm("Are you sure? This deletes ALL history.")) { savedData = []; localStorage.removeItem("auctionV4"); renderLedger(); } }
     function exportCSV() {
-        let csv = "Item,Bid,True Cost,Link,Photo(Base64)\n";
-        savedData.forEach(row => {
-            let safeItem = row.item.replace(/,/g, " ");
-            csv += `${safeItem},${row.bid},${row.total},${row.url},"${row.photo ? 'Yes' : 'No'}"\n`;
-        });
-        let link = document.createElement("a");
-        link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
-        link.download = "auction_ledger_photos.csv";
-        link.click();
+        let csv = "Item,Bid,True Cost,Link,Photo(Base64)\n"; savedData.forEach(row => { let safeItem = row.item.replace(/,/g, " "); csv += `${safeItem},${row.bid},${row.total},${row.url},"${row.photo ? 'Yes' : 'No'}"\n`; });
+        let link = document.createElement("a"); link.href = "data:text/csv;charset=utf-8," + encodeURI(csv); link.download = "auction_ledger_photos.csv"; link.click();
     }
 </script>
 
